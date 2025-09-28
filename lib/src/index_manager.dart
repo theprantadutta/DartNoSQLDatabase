@@ -25,15 +25,17 @@ class IndexManager {
     _indexTypes[field] = 'btree'; // Default to B-tree index
     
     // Build the index from existing documents
-    for (int i = 0; i < documents.length; i++) {
-      final doc = documents[i];
+    for (final doc in documents) {
       final value = _getFieldValue(doc, field);
-      
+
       if (value != null) {
-        if (!_indexes[field]!.containsKey(value)) {
-          _indexes[field]![value] = <int>{};
+        final docId = doc['_id'];
+        if (docId != null && docId is int) {
+          if (!_indexes[field]!.containsKey(value)) {
+            _indexes[field]![value] = <int>{};
+          }
+          _indexes[field]![value]!.add(docId);
         }
-        _indexes[field]![value]!.add(i);
       }
     }
   }

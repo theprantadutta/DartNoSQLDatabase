@@ -3,11 +3,12 @@ import 'dart:async';
 import 'query_engine.dart';
 import 'index_manager.dart';
 import 'storage_engine.dart';
+import 'filter.dart';
 
 /// Main database class that provides the NoSQL document database functionality.
 class DartNoSQLDatabase {
   final String _name;
-  final List<Map<String, dynamic>> _documents;
+  final Map<int, Map<String, dynamic>> _documents;
   final QueryEngine _queryEngine;
   final IndexManager _indexManager;
   final StorageEngine _storageEngine;
@@ -18,7 +19,7 @@ class DartNoSQLDatabase {
   /// [name] - Optional name for the database
   DartNoSQLDatabase({String name = 'default'})
       : _name = name,
-        _documents = [],
+        _documents = {},
         _queryEngine = QueryEngine(),
         _indexManager = IndexManager(),
         _storageEngine = StorageEngine();
@@ -42,7 +43,7 @@ class DartNoSQLDatabase {
     doc['_createdAt'] = DateTime.now().toIso8601String();
     doc['_updatedAt'] = DateTime.now().toIso8601String();
     
-    _documents.add(doc);
+    _documents[doc['_id']] = doc;
     
     // Update indexes
     await _indexManager.addToIndexes(doc);
@@ -66,14 +67,40 @@ class DartNoSQLDatabase {
     return insertedDocs;
   }
 
-  /// Queries documents using a Dart function predicate.
-  /// 
-  /// [predicate] - A function that takes a document and returns true if it matches.
+  /// Queries documents using a Dart function predicate or a Filter object.
+  ///
+  /// [query] - A function predicate or a `Filter` object.
   /// Returns a list of matching documents.
-  Future<List<Map<String, dynamic>>> query(
-      bool Function(Map<String, dynamic>) predicate) async {
-
-    return _queryEngine.execute(_documents, predicate);
+  Future<List<Map<String, dynamic>>> query(dynamic query) async {
+    if (query is Filter) {
+      // Query Planning: Check if we can use an index.
+      if (query.operator == FilterOperator.equals &&
+          _indexManager.hasIndex(query.field)) {
+        final docIds = _indexManager.queryIndex(query.field, query.value);
+        if (docIds != null) {
+          final results = <Map<String, dynamic>>[];
+          for (final id in docIds) {
+            if (_documents.containsKey(id)) {
+              results.add(_documents[id]!);
+            }
+          }
+          return results;
+        }
+      }
+      // If no index or other operator, fall back to full scan.
+      return _queryEngine.execute(_documents.values.toList(), filter: query);
+    } else if (query is Function) {
+      // Wrap the user-provided function to handle dynamic dispatch and ensure type safety.
+      final predicate = (Map<String, dynamic> doc) {
+        final result = (query as dynamic)(doc);
+        // Ensure the result is a boolean true.
+        return result is bool && result;
+      };
+      return _queryEngine.execute(_documents.values.toList(), predicate: predicate);
+    } else {
+      throw ArgumentError(
+          'Unsupported query type. Must be a Function or a Filter.');
+    }
   }
 
   /// Finds one document matching the predicate.
@@ -95,23 +122,22 @@ class DartNoSQLDatabase {
       Map<String, dynamic> updateData) async {
 
     int updatedCount = 0;
-    
-    for (int i = 0; i < _documents.length; i++) {
-      if (predicate(_documents[i])) {
-        // Remove from indexes before update
-        await _indexManager.removeFromIndexes(_documents[i]);
-        
-        // Update the document
-        _documents[i].addAll(updateData);
-        _documents[i]['_updatedAt'] = DateTime.now().toIso8601String();
-        
-        // Add back to indexes
-        await _indexManager.addToIndexes(_documents[i]);
-        
-        updatedCount++;
-      }
+    final docsToUpdate = _documents.values.where(predicate).toList();
+
+    for (final doc in docsToUpdate) {
+      // Remove from indexes before update
+      await _indexManager.removeFromIndexes(doc);
+
+      // Update the document
+      doc.addAll(updateData);
+      doc['_updatedAt'] = DateTime.now().toIso8601String();
+
+      // Add back to indexes
+      await _indexManager.addToIndexes(doc);
+
+      updatedCount++;
     }
-    
+
     return updatedCount;
   }
 
@@ -123,22 +149,22 @@ class DartNoSQLDatabase {
   Future<bool> updateOne(bool Function(Map<String, dynamic>) predicate,
       Map<String, dynamic> updateData) async {
 
-    for (int i = 0; i < _documents.length; i++) {
-      if (predicate(_documents[i])) {
+    for (final doc in _documents.values) {
+      if (predicate(doc)) {
         // Remove from indexes before update
-        await _indexManager.removeFromIndexes(_documents[i]);
-        
+        await _indexManager.removeFromIndexes(doc);
+
         // Update the document
-        _documents[i].addAll(updateData);
-        _documents[i]['_updatedAt'] = DateTime.now().toIso8601String();
-        
+        doc.addAll(updateData);
+        doc['_updatedAt'] = DateTime.now().toIso8601String();
+
         // Add back to indexes
-        await _indexManager.addToIndexes(_documents[i]);
-        
+        await _indexManager.addToIndexes(doc);
+
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -148,29 +174,17 @@ class DartNoSQLDatabase {
   /// Returns the number of documents deleted.
   Future<int> delete(bool Function(Map<String, dynamic>) predicate) async {
 
-    int initialLength = _documents.length;
-    
-    // Remove documents that match the predicate
-    final documentsToKeep = <Map<String, dynamic>>[];
-    final documentsToDelete = <Map<String, dynamic>>[];
-    
-    for (final doc in _documents) {
-      if (predicate(doc)) {
-        documentsToDelete.add(doc);
-      } else {
-        documentsToKeep.add(doc);
-      }
+    final docsToDelete = _documents.values.where(predicate).toList();
+    if (docsToDelete.isEmpty) {
+      return 0;
     }
-    
-    // Remove from indexes
-    for (final doc in documentsToDelete) {
+
+    for (final doc in docsToDelete) {
       await _indexManager.removeFromIndexes(doc);
+      _documents.remove(doc['_id']);
     }
-    
-    _documents.clear();
-    _documents.addAll(documentsToKeep);
-    
-    return initialLength - _documents.length;
+
+    return docsToDelete.length;
   }
 
   /// Deletes one document matching the predicate.
@@ -179,17 +193,20 @@ class DartNoSQLDatabase {
   /// Returns true if a document was deleted, false otherwise.
   Future<bool> deleteOne(bool Function(Map<String, dynamic>) predicate) async {
 
-    for (int i = 0; i < _documents.length; i++) {
-      if (predicate(_documents[i])) {
-        // Remove from indexes
-        await _indexManager.removeFromIndexes(_documents[i]);
-        
-        // Remove the document
-        _documents.removeAt(i);
-        return true;
+    Map<String, dynamic>? docToDelete;
+    for (final doc in _documents.values) {
+      if (predicate(doc)) {
+        docToDelete = doc;
+        break;
       }
     }
-    
+
+    if (docToDelete != null) {
+      await _indexManager.removeFromIndexes(docToDelete);
+      _documents.remove(docToDelete['_id']);
+      return true;
+    }
+
     return false;
   }
 
@@ -202,14 +219,14 @@ class DartNoSQLDatabase {
       return _documents.length;
     }
     
-    return _documents.where(predicate).length;
+    return _documents.values.where(predicate).length;
   }
 
   /// Gets all documents in the database.
   /// 
   /// Returns a list of all documents.
   Future<List<Map<String, dynamic>>> findAll() async {
-    return List<Map<String, dynamic>>.from(_documents);
+    return List<Map<String, dynamic>>.from(_documents.values);
   }
 
   /// Clears all documents from the database.
@@ -223,7 +240,7 @@ class DartNoSQLDatabase {
   /// 
   /// [field] - The field name to index.
   Future<void> createIndex(String field) async {
-    await _indexManager.createIndex(field, _documents);
+    await _indexManager.createIndex(field, _documents.values.toList());
   }
 
   /// Drops an index on a field.
@@ -242,7 +259,7 @@ class DartNoSQLDatabase {
   /// 
   /// [filePath] - The path to save the database file.
   Future<void> saveToFile(String filePath) async {
-    await _storageEngine.saveToFile(_documents, filePath);
+    await _storageEngine.saveToFile(_documents.values.toList(), filePath);
   }
 
   /// Loads the database from a file.
@@ -273,7 +290,7 @@ class DartNoSQLDatabase {
   Future<List<Map<String, dynamic>>> aggregate(
       List<Map<String, dynamic>> pipeline) async {
     // Simple aggregation implementation
-    var result = List<Map<String, dynamic>>.from(_documents);
+    var result = List<Map<String, dynamic>>.from(_documents.values);
     
     for (final stage in pipeline) {
       if (stage.containsKey('\$match')) {

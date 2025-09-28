@@ -298,6 +298,32 @@ void main() {
       });
     });
 
+    group('Query Optimization', () {
+      setUp(() async {
+        await db.insertMany([
+          {'name': 'Alice', 'age': 30, 'city': 'New York'},
+          {'name': 'Bob', 'age': 25, 'city': 'San Francisco'},
+          {'name': 'Charlie', 'age': 35, 'city': 'Seattle'},
+          {'name': 'Diana', 'age': 28, 'city': 'New York'},
+        ]);
+      });
+
+      test('should use index for equality filter query', () async {
+        // Create an index on the 'city' field
+        await db.createIndex('city');
+
+        // This query should use the index
+        final results = await db.query(Filter.equals('city', 'New York'));
+
+        expect(results.length, equals(2));
+        expect(results.every((doc) => doc['city'] == 'New York'), isTrue);
+        
+        // Verify that the names are correct to be sure
+        final names = results.map((doc) => doc['name']).toSet();
+        expect(names, equals({'Alice', 'Diana'}));
+      });
+    });
+
     group('Error Handling', () {
       test('should throw on null insert', () async {
         expect(() => db.insert(null as dynamic), throwsA(isA<Error>()));

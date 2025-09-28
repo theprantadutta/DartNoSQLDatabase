@@ -1,6 +1,8 @@
 
 
 
+import 'filter.dart';
+
 /// Query engine that executes Dart function predicates against documents.
 class QueryEngine {
   
@@ -13,17 +15,31 @@ class QueryEngine {
   /// [predicate] - The Dart function that acts as the query filter.
   /// Returns a list of documents that match the predicate.
   List<Map<String, dynamic>> execute(
-      List<Map<String, dynamic>> documents,
-      bool Function(Map<String, dynamic>) predicate) {
-    
-    // Try to optimize the query using indexes if possible
-    final optimizedResults = _tryOptimizeQuery(documents, predicate);
-    if (optimizedResults != null) {
-      return optimizedResults;
+    List<Map<String, dynamic>> documents, {
+    bool Function(Map<String, dynamic>)? predicate,
+    Filter? filter,
+  }) {
+    bool Function(Map<String, dynamic>) finalPredicate;
+
+    if (predicate != null) {
+      finalPredicate = predicate;
+    } else if (filter != null) {
+      // This is the new path. For now, convert filter to a predicate and scan.
+      // The actual optimization will happen here later.
+      finalPredicate = (Map<String, dynamic> doc) {
+        if (filter.operator == FilterOperator.equals) {
+          return doc[filter.field] == filter.value;
+        }
+        return false;
+      };
+    } else {
+      // No filter or predicate, return all documents.
+      return List<Map<String, dynamic>>.from(documents);
     }
-    
-    // Fall back to full collection scan
-    return _executeCollectionScan(documents, predicate);
+
+    // For now, we always do a full scan.
+    // Optimization logic will be added here later.
+    return _executeCollectionScan(documents, finalPredicate);
   }
 
   /// Attempts to optimize a query using available indexes.
@@ -151,7 +167,7 @@ class QueryEngine {
       bool Function(Map<String, dynamic>) predicate) {
     
     final stopwatch = Stopwatch()..start();
-    final results = execute(documents, predicate);
+    final results = execute(documents, predicate: predicate);
     stopwatch.stop();
     
     return {
