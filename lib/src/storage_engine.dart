@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
+
 
 /// Handles persistent storage operations for the database.
 class StorageEngine {
@@ -91,12 +91,7 @@ class StorageEngine {
     
     final documents = List<Map<String, dynamic>>.from(data['documents']);
     
-    // Validate document structure
-    for (final doc in documents) {
-      if (doc is! Map<String, dynamic>) {
-        throw FormatException('Invalid document format in database file');
-      }
-    }
+    
     
     return documents;
   }

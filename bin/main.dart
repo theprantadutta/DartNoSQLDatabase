@@ -176,7 +176,7 @@ Future<void> _handleDelete(DartNoSQLDatabase db, List<String> parts) async {
   try {
     final queryStr = parts.skip(1).join(' ');
     final deleted = await _executeDelete(db, queryStr);
-    print('🗑️  Deleted $document(s)');
+    print('🗑️  Deleted $deleted document(s)');
   } catch (e) {
     print('❌ Delete error: $e');
   }

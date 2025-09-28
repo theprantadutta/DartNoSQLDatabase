@@ -257,16 +257,16 @@ void main() {
       test('should create index', () async {
         await db.createIndex('age');
 
-        final hasIndex = await db.hasIndex('age');
-        expect(hasIndex, isTrue);
+        final indexInfo = await db.getIndexInfo();
+        expect(indexInfo.containsKey('age'), isTrue);
       });
 
       test('should drop index', () async {
         await db.createIndex('age');
         await db.dropIndex('age');
 
-        final hasIndex = await db.hasIndex('age');
-        expect(hasIndex, isFalse);
+        final indexInfo = await db.getIndexInfo();
+        expect(indexInfo.containsKey('age'), isFalse);
       });
 
       test('should get index info', () async {
@@ -300,23 +300,23 @@ void main() {
 
     group('Error Handling', () {
       test('should throw on null insert', () async {
-        expect(() => db.insert(null), throwsArgumentError);
+        expect(() => db.insert(null as dynamic), throwsA(isA<Error>()));
       });
 
       test('should throw on null query predicate', () async {
-        expect(() => db.query(null), throwsArgumentError);
+        expect(() => db.query(null as dynamic), throwsA(isA<Error>()));
       });
 
       test('should throw on null update predicate', () async {
-        expect(() => db.update(null, {}), throwsArgumentError);
+        expect(() => db.update(null as dynamic, {}), throwsA(isA<Error>()));
       });
 
       test('should throw on null update data', () async {
-        expect(() => db.update((doc) => true, null), throwsArgumentError);
+        expect(() => db.update((doc) => true, null as dynamic), throwsA(isA<Error>()));
       });
 
       test('should throw on null delete predicate', () async {
-        expect(() => db.delete(null), throwsArgumentError);
+        expect(() => db.delete(null as dynamic), throwsA(isA<Error>()));
       });
 
       test('should handle errors in query predicate gracefully', () async {

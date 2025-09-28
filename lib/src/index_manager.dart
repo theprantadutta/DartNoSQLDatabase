@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:collection';
+
 
 /// Manages indexes for efficient query execution.
 class IndexManager {

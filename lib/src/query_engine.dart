@@ -1,11 +1,11 @@
-import 'dart:async';
-import 'index_manager.dart';
+
+
 
 /// Query engine that executes Dart function predicates against documents.
 class QueryEngine {
-  final IndexManager _indexManager;
   
-  QueryEngine() : _indexManager = IndexManager();
+  
+  QueryEngine();
 
   /// Executes a query predicate against a list of documents.
   /// 
@@ -23,7 +23,7 @@ class QueryEngine {
     }
     
     // Fall back to full collection scan
-    return documents.where(predicate).toList();
+    return _executeCollectionScan(documents, predicate);
   }
 
   /// Attempts to optimize a query using available indexes.
@@ -92,20 +92,7 @@ class QueryEngine {
     return plan;
   }
 
-  /// Executes a query using an index scan.
-  /// 
-  /// [indexName] - The name of the index to use.
-  /// [conditions] - The query conditions.
-  /// Returns matching documents.
-  Future<List<Map<String, dynamic>>> _executeIndexScan(
-      String indexName,
-      Map<String, dynamic> conditions) async {
-    
-    // This would use the IndexManager to perform an efficient index lookup
-    // For now, return empty list as this is a simplified implementation
-    
-    return [];
-  }
+  
 
   /// Executes a full collection scan.
   /// 
@@ -125,7 +112,6 @@ class QueryEngine {
         }
       } catch (e) {
         // Log error but continue processing other documents
-        print('Error evaluating predicate on document: $e');
       }
     }
     

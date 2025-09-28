@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'package:collection/collection.dart';
+
 import 'query_engine.dart';
 import 'index_manager.dart';
 import 'storage_engine.dart';
@@ -30,9 +28,7 @@ class DartNoSQLDatabase {
   /// [document] - The document to insert. Must be a Map.
   /// Returns the inserted document with an auto-generated _id field.
   Future<Map<String, dynamic>> insert(Map<String, dynamic> document) async {
-    if (document == null) {
-      throw ArgumentError('Document cannot be null');
-    }
+    
 
     // Create a copy to avoid modifying the original
     final doc = Map<String, dynamic>.from(document);
@@ -76,9 +72,6 @@ class DartNoSQLDatabase {
   /// Returns a list of matching documents.
   Future<List<Map<String, dynamic>>> query(
       bool Function(Map<String, dynamic>) predicate) async {
-    if (predicate == null) {
-      throw ArgumentError('Predicate cannot be null');
-    }
 
     return _queryEngine.execute(_documents, predicate);
   }
@@ -100,9 +93,6 @@ class DartNoSQLDatabase {
   /// Returns the number of documents updated.
   Future<int> update(bool Function(Map<String, dynamic>) predicate,
       Map<String, dynamic> updateData) async {
-    if (predicate == null || updateData == null) {
-      throw ArgumentError('Predicate and updateData cannot be null');
-    }
 
     int updatedCount = 0;
     
@@ -132,9 +122,6 @@ class DartNoSQLDatabase {
   /// Returns true if a document was updated, false otherwise.
   Future<bool> updateOne(bool Function(Map<String, dynamic>) predicate,
       Map<String, dynamic> updateData) async {
-    if (predicate == null || updateData == null) {
-      throw ArgumentError('Predicate and updateData cannot be null');
-    }
 
     for (int i = 0; i < _documents.length; i++) {
       if (predicate(_documents[i])) {
@@ -160,9 +147,6 @@ class DartNoSQLDatabase {
   /// [predicate] - A function that identifies documents to delete.
   /// Returns the number of documents deleted.
   Future<int> delete(bool Function(Map<String, dynamic>) predicate) async {
-    if (predicate == null) {
-      throw ArgumentError('Predicate cannot be null');
-    }
 
     int initialLength = _documents.length;
     
@@ -194,9 +178,6 @@ class DartNoSQLDatabase {
   /// [predicate] - A function that identifies the document to delete.
   /// Returns true if a document was deleted, false otherwise.
   Future<bool> deleteOne(bool Function(Map<String, dynamic>) predicate) async {
-    if (predicate == null) {
-      throw ArgumentError('Predicate cannot be null');
-    }
 
     for (int i = 0; i < _documents.length; i++) {
       if (predicate(_documents[i])) {
@@ -306,7 +287,6 @@ class DartNoSQLDatabase {
         // Basic group implementation
         final groupSpec = stage['\$group'] as Map<String, dynamic>;
         final groupBy = groupSpec['\$groupBy'] as String;
-        final accumulator = groupSpec['\$accumulator'] as String;
         
         final groups = <dynamic, List<Map<String, dynamic>>>{};
         for (final doc in result) {
