@@ -1,0 +1,52 @@
+# Dart
+.dart_tool/
+.packages
+build/
+pubspec.lock
+*.dart.js
+*.info.json
+*.js.deps
+*.js.map
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database files
+*.ddb
+*.meta
+
+# Test coverage
+coverage/
+
+# Documentation
+doc/api/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Backup files
+*.bak
+*.backup
+
+# Node modules (if any)
+node_modules/
+
+# Flutter (if used)
+.flutter-plugins
+.flutter-plugins-dependencies

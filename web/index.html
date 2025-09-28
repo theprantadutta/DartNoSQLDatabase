@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dart NoSQL Database - Interactive Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+            color: white;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .panel {
+            background: var(--surface);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .panel h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        .results-panel {
+            grid-column: 1 / -1;
+        }
+
+        .results-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: #f8fafc;
+        }
+
+        .document-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            background: white;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .document-item:last-child {
+            border-bottom: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .code-editor {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            background: #1e293b;
+            color: #e2e8f0;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .code-editor:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--primary-color);
+        }
+
+        .query-examples {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .query-examples h4 {
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .query-examples pre {
+            margin: 0.25rem 0;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .query-examples pre:hover {
+            border-color: var(--primary-color);
+            background: #f8fafc;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-database"></i> Dart NoSQL Database</h1>
+            <p>Interactive Demo - Query your data with native Dart functions</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="docCount">0</div>
+                <div class="stat-label">Documents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="indexCount">0</div>
+                <div class="stat-label">Indexes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="queryTime">0ms</div>
+                <div class="stat-label">Last Query Time</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="panel">
+                <h2><i class="fas fa-plus-circle"></i> Insert Document</h2>
+                <div class="form-group">
+                    <label for="insertJson">JSON Document:</label>
+                    <textarea id="insertJson" class="code-editor" placeholder='{"name": "John Doe", "age": 30, "city": "New York"}'></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="insertDocument()">
+                    <i class="fas fa-plus"></i> Insert Document
+                </button>
+                <div class="query-examples">
+                    <h4>Quick Examples:</h4>
+                    <pre onclick="setInsertExample(0)">{"name": "Alice", "age": 30, "skills": ["Dart", "Flutter"]}</pre>
+                    <pre onclick="setInsertExample(1)">{"name": "Bob", "age": 25, "active": true, "salary": 65000}</pre>
+                    <pre onclick="setInsertExample(2)">{"company": "TechCorp", "employees": 150, "founded": 2020}</pre>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2><i class="fas fa-search"></i> Query Documents</h2>
+                <div class="form-group">
+                    <label for="queryFunction">Dart Query Function:</label>
+                    <textarea id="queryFunction" class="code-editor" placeholder="(doc) => doc['age'] > 25 && doc['name'].startsWith('A')"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="executeQuery()">
+                    <i class="fas fa-search"></i> Execute Query
+                </button>
+                <div class="query-examples">
+                    <h4>Query Examples:</h4>
+                    <pre onclick="setQueryExample(0)">(doc) => doc['age'] > 25</pre>
+                    <pre onclick="setQueryExample(1)">(doc) => doc['name'] == 'Alice'</pre>
+                    <pre onclick="setQueryExample(2)">(doc) => doc['skills']?.contains('Dart') ?? false</pre>
+                    <pre onclick="setQueryExample(3)">(doc) => doc['active'] == true && doc['salary'] > 50000</pre>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2><i class="fas fa-edit"></i> Update Documents</h2>
+                <div class="form-group">
+                    <label for="updateQuery">Query (same syntax as above):</label>
+                    <input type="text" id="updateQuery" placeholder="doc['name'] == 'Alice'">
+                </div>
+                <div class="form-group">
+                    <label for="updateData">Update Data (JSON):</label>
+                    <textarea id="updateData" class="code-editor" placeholder='{"salary": 75000, "promoted": true}'></textarea>
+                </div>
+                <button class="btn btn-warning" onclick="updateDocuments()">
+                    <i class="fas fa-edit"></i> Update Documents
+                </button>
+            </div>
+
+            <div class="panel">
+                <h2><i class="fas fa-tools"></i> Database Operations</h2>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="showAllDocuments()">
+                        <i class="fas fa-list"></i> Show All Documents
+                    </button>
+                    <button class="btn btn-success" onclick="createSampleData()">
+                        <i class="fas fa-plus"></i> Add Sample Data
+                    </button>
+                    <button class="btn btn-danger" onclick="clearDatabase()">
+                        <i class="fas fa-trash"></i> Clear Database
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel results-panel">
+            <h2><i class="fas fa-table"></i> Query Results</h2>
+            <div id="resultsContainer" class="results-container">
+                <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                    <i class="fas fa-database" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <p>No data yet. Insert some documents or add sample data to get started!</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+    </div>
+
+    <script>
+        // In-memory database simulation for the demo
+        class DartNoSQLDatabase {
+            constructor() {
+                this.documents = [];
+                this.indexes = new Map();
+                this.nextId = 1;
+            }
+
+            insert(document) {
+                return new Promise((resolve) => {
+                    const doc = {...document};
+                    doc._id = this.nextId++;
+                    doc._createdAt = new Date().toISOString();
+                    doc._updatedAt = new Date().toISOString();
+                    this.documents.push(doc);
+                    this.updateIndexes(doc);
+                    resolve(doc);
+                });
+            }
+
+            insertMany(documents) {
+                return Promise.all(documents.map(doc => this.insert(doc)));
+            }
+
+            query(predicate) {
+                return new Promise((resolve) => {
+                    const start = performance.now();
+                    const results = this.documents.filter(doc => {
+                        try {
+                            return this.evaluatePredicate(predicate, doc);
+                        } catch (e) {
+                            return false;
+                        }
+                    });
+                    const end = performance.now();
+                    document.getElementById('queryTime').textContent = `${(end - start).toFixed(1)}ms`;
+                    resolve(results);
+                });
+            }
+
+            evaluatePredicate(predicateString, doc) {
+                // Simple predicate evaluator for demo
+                const func = new Function('doc', `return (${predicateString})(doc)`);
+                return func(doc);
+            }
+
+            update(predicate, updateData) {
+                return new Promise((resolve) => {
+                    let count = 0;
+                    this.documents = this.documents.map(doc => {
+                        try {
+                            if (this.evaluatePredicate(predicate, doc)) {
+                                count++;
+                                return {...doc, ...updateData, _updatedAt: new Date().toISOString()};
+                            }
+                        } catch (e) {
+                            // Skip documents that cause errors
+                        }
+                        return doc;
+                    });
+                    resolve(count);
+                });
+            }
+
+            delete(predicate) {
+                return new Promise((resolve) => {
+                    const originalLength = this.documents.length;
+                    this.documents = this.documents.filter(doc => {
+                        try {
+                            return !this.evaluatePredicate(predicate, doc);
+                        } catch (e) {
+                            return true; // Keep documents that cause errors
+                        }
+                    });
+                    resolve(originalLength - this.documents.length);
+                });
+            }
+
+            count(predicate = null) {
+                return new Promise((resolve) => {
+                    if (!predicate) {
+                        resolve(this.documents.length);
+                    } else {
+                        const count = this.documents.filter(doc => {
+                            try {
+                                return this.evaluatePredicate(predicate, doc);
+                            } catch (e) {
+                                return false;
+                            }
+                        }).length;
+                        resolve(count);
+                    }
+                });
+            }
+
+            findAll() {
+                return Promise.resolve([...this.documents]);
+            }
+
+            clear() {
+                return new Promise((resolve) => {
+                    this.documents = [];
+                    this.indexes.clear();
+                    this.nextId = 1;
+                    resolve();
+                });
+            }
+
+            createIndex(field) {
+                return new Promise((resolve) => {
+                    this.indexes.set(field, new Map());
+                    // Build index from existing documents
+                    this.documents.forEach(doc => this.updateIndex(field, doc));
+                    resolve();
+                });
+            }
+
+            updateIndexes(doc) {
+                this.indexes.forEach((field, index) => {
+                    this.updateIndex(field, doc);
+                });
+            }
+
+            updateIndex(field, doc) {
+                const value = this.getNestedValue(doc, field);
+                if (value !== undefined) {
+                    if (!this.indexes.get(field).has(value)) {
+                        this.indexes.get(field).set(value, []);
+                    }
+                    this.indexes.get(field).get(value).push(doc);
+                }
+            }
+
+            getNestedValue(obj, path) {
+                return path.split('.').reduce((current, key) => current && current[key], obj);
+            }
+
+            getStats() {
+                return Promise.resolve({
+                    name: 'demo_db',
+                    documentCount: this.documents.length,
+                    indexes: Object.fromEntries(this.indexes.entries)
+                });
+            }
+        }
+
+        // Initialize database
+        const db = new DartNoSQLDatabase();
+
+        // Insert examples
+        const insertExamples = [
+            '{"name": "Alice", "age": 30, "skills": ["Dart", "Flutter"]}',
+            '{"name": "Bob", "age": 25, "active": true, "salary": 65000}',
+            '{"company": "TechCorp", "employees": 150, "founded": 2020}'
+        ];
+
+        // Query examples
+        const queryExamples = [
+            "(doc) => doc['age'] > 25",
+            "(doc) => doc['name'] == 'Alice'",
+            "(doc) => doc['skills']?.contains('Dart') ?? false",
+            "(doc) => doc['active'] == true && doc['salary'] > 50000"
+        ];
+
+        function setInsertExample(index) {
+            document.getElementById('insertJson').value = insertExamples[index];
+        }
+
+        function setQueryExample(index) {
+            document.getElementById('queryFunction').value = queryExamples[index];
+        }
+
+        async function insertDocument() {
+            const jsonInput = document.getElementById('insertJson').value.trim();
+            if (!jsonInput) {
+                showAlert('Please enter a JSON document', 'error');
+                return;
+            }
+
+            try {
+                const document = JSON.parse(jsonInput);
+                const result = await db.insert(document);
+                showAlert(`Document inserted with ID: ${result._id}`, 'success');
+                document.getElementById('insertJson').value = '';
+                await updateStats();
+                await showAllDocuments();
+            } catch (error) {
+                showAlert(`Invalid JSON: ${error.message}`, 'error');
+            }
+        }
+
+        async function executeQuery() {
+            const queryInput = document.getElementById('queryFunction').value.trim();
+            if (!queryInput) {
+                showAlert('Please enter a query function', 'error');
+                return;
+            }
+
+            try {
+                const results = await db.query(queryInput);
+                displayResults(results);
+                showAlert(`Query executed successfully. Found ${results.length} document(s)`, 'success');
+            } catch (error) {
+                showAlert(`Query error: ${error.message}`, 'error');
+            }
+        }
+
+        async function updateDocuments() {
+            const queryInput = document.getElementById('updateQuery').value.trim();
+            const updateInput = document.getElementById('updateData').value.trim();
+
+            if (!queryInput || !updateInput) {
+                showAlert('Please enter both query and update data', 'error');
+                return;
+            }
+
+            try {
+                const updateData = JSON.parse(updateInput);
+                const updatedCount = await db.update(`(doc) => ${queryInput}`, updateData);
+                showAlert(`${updatedCount} document(s) updated`, 'success');
+                document.getElementById('updateQuery').value = '';
+                document.getElementById('updateData').value = '';
+                await updateStats();
+                await showAllDocuments();
+            } catch (error) {
+                showAlert(`Update error: ${error.message}`, 'error');
+            }
+        }
+
+        async function showAllDocuments() {
+            const results = await db.findAll();
+            displayResults(results);
+        }
+
+        async function createSampleData() {
+            const sampleData = [
+                { name: 'Alice Johnson', age: 30, city: 'New York', skills: ['Dart', 'Flutter', 'Firebase'], active: true, salary: 75000 },
+                { name: 'Bob Smith', age: 25, city: 'San Francisco', skills: ['JavaScript', 'React', 'Node.js'], active: true, salary: 65000 },
+                { name: 'Charlie Brown', age: 35, city: 'Seattle', skills: ['Python', 'Django', 'PostgreSQL'], active: false, salary: 80000 },
+                { name: 'Diana Prince', age: 28, city: 'Los Angeles', skills: ['Java', 'Spring', 'MySQL'], active: true, salary: 70000 }
+            ];
+
+            await db.insertMany(sampleData);
+            showAlert('Sample data added successfully', 'success');
+            await updateStats();
+            await showAllDocuments();
+        }
+
+        async function clearDatabase() {
+            if (confirm('Are you sure you want to clear all data?')) {
+                await db.clear();
+                showAlert('Database cleared successfully', 'success');
+                await updateStats();
+                await showAllDocuments();
+            }
+        }
+
+        function displayResults(results) {
+            const container = document.getElementById('resultsContainer');
+            
+            if (results.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <p>No documents found matching the query.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = results.map(doc => 
+                `<div class="document-item">${JSON.stringify(doc, null, 2)}</div>`
+            ).join('');
+        }
+
+        async function updateStats() {
+            const stats = await db.getStats();
+            document.getElementById('docCount').textContent = stats.documentCount;
+            document.getElementById('indexCount').textContent = Object.keys(stats.indexes).length;
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'error' ? 'alert-error' : 'alert-info';
+            const icon = type === 'success' ? 'fas fa-check-circle' : 
+                        type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle';
+
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass}`;
+            alert.innerHTML = `<i class="${icon}"></i> ${message}`;
+
+            container.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await updateStats();
+        });
+    </script>
+</body>
+</html>

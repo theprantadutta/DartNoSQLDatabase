@@ -1,0 +1,18 @@
+name: dart_nosql_database
+version: 1.0.0
+description: A No-SQL document database with Dart-like query language
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  collection: ^1.18.0
+  crypto: ^3.0.3
+  path: ^1.8.3
+
+executables:
+  dartdb: bin/main.dart
+
+dev_dependencies:
+  test: ^1.24.0
+  lints: ^2.1.0
