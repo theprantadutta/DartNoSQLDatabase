@@ -4,6 +4,7 @@ import 'query_engine.dart';
 import 'index_manager.dart';
 import 'storage_engine.dart';
 import 'filter.dart';
+import 'wal_manager.dart';
 
 /// Main database class that provides the NoSQL document database functionality.
 class DartNoSQLDatabase {
@@ -12,6 +13,7 @@ class DartNoSQLDatabase {
   final QueryEngine _queryEngine;
   final IndexManager _indexManager;
   final StorageEngine _storageEngine;
+  final WalManager _walManager;
   int _nextId = 1;
 
   /// Creates a new database instance.
@@ -22,7 +24,8 @@ class DartNoSQLDatabase {
         _documents = {},
         _queryEngine = QueryEngine(),
         _indexManager = IndexManager(),
-        _storageEngine = StorageEngine();
+        _storageEngine = StorageEngine(),
+        _walManager = WalManager(name);
 
   /// Inserts a document into the database.
   /// 
@@ -321,5 +324,12 @@ class DartNoSQLDatabase {
     }
     
     return result;
+  }
+
+  /// Closes the database and its associated resources.
+  Future<void> close() async {
+    await _walManager.close();
+    // Potentially save to file here as part of checkpointing
+    // For now, just close WAL.
   }
 }
